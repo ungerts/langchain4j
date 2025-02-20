@@ -12,9 +12,7 @@ import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 
 import static dev.langchain4j.internal.ValidationUtils.ensureGreaterThanZero;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
@@ -37,78 +35,21 @@ import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
  * <p>
  * The state of chat memory is stored in {@link ChatMemoryStore} ({@link InMemoryChatMemoryStore} is used by default).
  */
-public class TokenWindowChatMemory implements ChatMemory {
+public final class TokenWindowChatMemory extends AbstractWindowChatMemory {
 
     private static final Logger log = LoggerFactory.getLogger(TokenWindowChatMemory.class);
 
-    private final Object id;
     private final Integer maxTokens;
     private final Tokenizer tokenizer;
-    private final ChatMemoryStore store;
 
     private TokenWindowChatMemory(Builder builder) {
-        this.id = ensureNotNull(builder.id, "id");
+        super(ensureNotNull(builder.id, "id"), ensureNotNull(builder.store, "store"));
         this.maxTokens = ensureGreaterThanZero(builder.maxTokens, "maxTokens");
         this.tokenizer = ensureNotNull(builder.tokenizer, "tokenizer");
-        this.store = ensureNotNull(builder.store, "store");
     }
 
     @Override
-    public Object id() {
-        return id;
-    }
-
-    @Override
-    public void add(ChatMessage message) {
-        List<ChatMessage> messages = messages();
-        // do not add the same system message
-        if (addChatMessage(message, messages, maxTokens, tokenizer)) {
-            store.updateMessages(id, messages);
-        }
-    }
-
-    private static boolean addChatMessage(ChatMessage message, List<ChatMessage> messages, final Integer maxTokens, final Tokenizer tokenizer) {
-        if (message instanceof SystemMessage) {
-            Optional<SystemMessage> systemMessage = findSystemMessage(messages);
-            if (systemMessage.isPresent()) {
-                if (systemMessage.get().equals(message)) {
-                    return false;
-                } else {
-                    messages.remove(systemMessage.get()); // need to replace existing system message
-                }
-            }
-        }
-        messages.add(message);
-        ensureCapacity(messages, maxTokens, tokenizer);
-        return true;
-    }
-
-    @Override
-    public void addAll(final List<ChatMessage> messages) {
-        List<ChatMessage> currentMessages = messages();
-        boolean updated = messages.stream()
-                .map(message -> addChatMessage(message, currentMessages, maxTokens, tokenizer))
-                .reduce(false, (a, b) -> a || b);
-        if (updated) {
-            store.updateMessages(id, currentMessages);
-        }
-    }
-
-    private static Optional<SystemMessage> findSystemMessage(List<ChatMessage> messages) {
-        return messages.stream()
-                .filter(SystemMessage.class::isInstance)
-                .map(SystemMessage.class::cast)
-                .findAny();
-    }
-
-    @Override
-    public List<ChatMessage> messages() {
-        List<ChatMessage> messages = new LinkedList<>(store.getMessages(id));
-        ensureCapacity(messages, maxTokens, tokenizer);
-        return messages;
-    }
-
-    private static void ensureCapacity(List<ChatMessage> messages, int maxTokens, Tokenizer tokenizer) {
+    protected void ensureCapacity(List<ChatMessage> messages) {
 
         if (messages.isEmpty()) {
             return;
@@ -139,11 +80,6 @@ public class TokenWindowChatMemory implements ChatMemory {
                 }
             }
         }
-    }
-
-    @Override
-    public void clear() {
-        store.deleteMessages(id);
     }
 
     public static Builder builder() {
