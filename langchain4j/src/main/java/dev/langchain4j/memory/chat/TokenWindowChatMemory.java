@@ -61,25 +61,43 @@ public class TokenWindowChatMemory implements ChatMemory {
     @Override
     public void add(ChatMessage message) {
         List<ChatMessage> messages = messages();
+        // do not add the same system message
+        if (addChatMessage(message, messages, maxTokens, tokenizer)) {
+            store.updateMessages(id, messages);
+        }
+    }
+
+    private static boolean addChatMessage(ChatMessage message, List<ChatMessage> messages, final Integer maxTokens, final Tokenizer tokenizer) {
         if (message instanceof SystemMessage) {
-            Optional<SystemMessage> maybeSystemMessage = findSystemMessage(messages);
-            if (maybeSystemMessage.isPresent()) {
-                if (maybeSystemMessage.get().equals(message)) {
-                    return; // do not add the same system message
+            Optional<SystemMessage> systemMessage = findSystemMessage(messages);
+            if (systemMessage.isPresent()) {
+                if (systemMessage.get().equals(message)) {
+                    return false;
                 } else {
-                    messages.remove(maybeSystemMessage.get()); // need to replace existing system message
+                    messages.remove(systemMessage.get()); // need to replace existing system message
                 }
             }
         }
         messages.add(message);
         ensureCapacity(messages, maxTokens, tokenizer);
-        store.updateMessages(id, messages);
+        return true;
+    }
+
+    @Override
+    public void addAll(final List<ChatMessage> messages) {
+        List<ChatMessage> currentMessages = messages();
+        boolean updated = messages.stream()
+                .map(message -> addChatMessage(message, currentMessages, maxTokens, tokenizer))
+                .reduce(false, (a, b) -> a || b);
+        if (updated) {
+            store.updateMessages(id, currentMessages);
+        }
     }
 
     private static Optional<SystemMessage> findSystemMessage(List<ChatMessage> messages) {
         return messages.stream()
-                .filter(message -> message instanceof SystemMessage)
-                .map(message -> (SystemMessage) message)
+                .filter(SystemMessage.class::isInstance)
+                .map(SystemMessage.class::cast)
                 .findAny();
     }
 
@@ -110,7 +128,7 @@ public class TokenWindowChatMemory implements ChatMemory {
                     tokenCountOfEvictedMessage, evictedMessage);
             currentTokenCount -= tokenCountOfEvictedMessage;
 
-            if (evictedMessage instanceof AiMessage && ((AiMessage) evictedMessage).hasToolExecutionRequests()) {
+            if (evictedMessage instanceof AiMessage evictedAiMessage && evictedAiMessage.hasToolExecutionRequests()) {
                 while (messages.size() > messageToEvictIndex
                         && messages.get(messageToEvictIndex) instanceof ToolExecutionResultMessage) {
                     // Some LLMs (e.g. OpenAI) prohibit ToolExecutionResultMessage(s) without corresponding AiMessage,

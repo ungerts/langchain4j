@@ -57,11 +57,18 @@ public class MessageWindowChatMemory implements ChatMemory {
     @Override
     public void add(ChatMessage message) {
         List<ChatMessage> messages = messages();
+        // do not add the same system message
+        if (addChatMessage(message, messages, maxMessages)) {
+            store.updateMessages(id, messages);
+        }
+    }
+
+    private static boolean addChatMessage(ChatMessage message, List<ChatMessage> messages, final Integer maxMessages) {
         if (message instanceof SystemMessage) {
             Optional<SystemMessage> systemMessage = findSystemMessage(messages);
             if (systemMessage.isPresent()) {
                 if (systemMessage.get().equals(message)) {
-                    return; // do not add the same system message
+                    return false;
                 } else {
                     messages.remove(systemMessage.get()); // need to replace existing system message
                 }
@@ -69,13 +76,24 @@ public class MessageWindowChatMemory implements ChatMemory {
         }
         messages.add(message);
         ensureCapacity(messages, maxMessages);
-        store.updateMessages(id, messages);
+        return true;
+    }
+
+    @Override
+    public void addAll(final List<ChatMessage> messages) {
+        List<ChatMessage> currentMessages = messages();
+        boolean updated = messages.stream()
+                .map(message -> addChatMessage(message, currentMessages, maxMessages))
+                .reduce(false, (a, b) -> a || b);
+        if (updated) {
+            store.updateMessages(id, currentMessages);
+        }
     }
 
     private static Optional<SystemMessage> findSystemMessage(List<ChatMessage> messages) {
         return messages.stream()
-                .filter(message -> message instanceof SystemMessage)
-                .map(message -> (SystemMessage) message)
+                .filter(SystemMessage.class::isInstance)
+                .map(SystemMessage.class::cast)
                 .findAny();
     }
 
@@ -97,7 +115,7 @@ public class MessageWindowChatMemory implements ChatMemory {
             ChatMessage evictedMessage = messages.remove(messageToEvictIndex);
             log.trace("Evicting the following message to comply with the capacity requirement: {}", evictedMessage);
 
-            if (evictedMessage instanceof AiMessage && ((AiMessage) evictedMessage).hasToolExecutionRequests()) {
+            if (evictedMessage instanceof AiMessage evictedAiMessage && evictedAiMessage.hasToolExecutionRequests()) {
                 while (messages.size() > messageToEvictIndex
                         && messages.get(messageToEvictIndex) instanceof ToolExecutionResultMessage) {
                     // Some LLMs (e.g. OpenAI) prohibit ToolExecutionResultMessage(s) without corresponding AiMessage,

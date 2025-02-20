@@ -26,6 +26,13 @@ public interface ChatMemory {
     void add(ChatMessage message);
 
     /**
+     * Add a list of messages to the chat memory.
+     *
+     * @param messages The list of {@link ChatMessage} objects to add.
+     */
+    void addAll(List<ChatMessage> messages);
+
+    /**
      * Retrieves messages from the chat memory.
      * Depending on the implementation, it may not return all previously added messages,
      * but rather a subset, a summary, or a combination thereof.
