@@ -9,6 +9,16 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * This abstract chat memory serves as a foundation for implementing window-based chat memory systems.
+ * It provides the core functionality needed to manage message retention within a defined window.
+ * <p>
+ * Currently, two implementations are available:
+ * <ul>
+ *   <li>{@link MessageWindowChatMemory} – maintains a fixed number of recent messages.</li>
+ *   <li>{@link TokenWindowChatMemory} – retains messages within a specified token limit.</li>
+ * </ul>
+ */
 public abstract sealed class AbstractWindowChatMemory implements ChatMemory
         permits MessageWindowChatMemory, TokenWindowChatMemory {
 
