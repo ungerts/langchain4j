@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.util.List;
 import java.util.UUID;
 
 import static dev.langchain4j.data.message.AiMessage.aiMessage;
@@ -75,10 +76,8 @@ abstract class CassandraChatMemoryStoreTestSupport {
 
         // When
         UserMessage userMessage = userMessage("I will ask you a few question about ff4j.");
-        chatMemory.add(userMessage);
-
         AiMessage aiMessage = aiMessage("Sure, go ahead!");
-        chatMemory.add(aiMessage);
+        chatMemory.addAll(List.of(userMessage, aiMessage));
 
         // Then
         assertThat(chatMemory.messages()).containsExactly(userMessage, aiMessage);

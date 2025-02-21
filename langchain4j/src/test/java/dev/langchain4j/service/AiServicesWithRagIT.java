@@ -45,6 +45,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -122,9 +123,9 @@ class AiServicesWithRagIT {
 
         MessageWindowChatMemory chatMemory = MessageWindowChatMemory.withMaxMessages(10);
         UserMessage userMessage = UserMessage.from("Hello");
-        chatMemory.add(userMessage);
         AiMessage aiMessage = AiMessage.from("Hi, how can I help you today?");
-        chatMemory.add(aiMessage);
+        chatMemory.addAll(List.of(userMessage, aiMessage));
+
 
         Assistant assistant = AiServices.builder(Assistant.class)
                 .chatLanguageModel(model)
