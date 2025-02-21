@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * This abstract chat memory serves as a foundation for implementing window-based chat memory systems.
+ * This abstract chat memory serves as a foundation for implementing window-based chat memories.
  * It provides the core functionality needed to manage message retention within a defined window.
  * <p>
  * Currently, two implementations are available:
