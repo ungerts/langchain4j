@@ -4,7 +4,6 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
-
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -91,5 +90,4 @@ public abstract sealed class AbstractWindowChatMemory implements ChatMemory
         ensureCapacity(messages);
         return messages;
     }
-
 }

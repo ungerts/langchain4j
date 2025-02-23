@@ -1,61 +1,46 @@
 package dev.langchain4j.memory.chat;
 
+import static dev.langchain4j.data.message.AiMessage.aiMessage;
+import static dev.langchain4j.data.message.SystemMessage.systemMessage;
+import static dev.langchain4j.data.message.UserMessage.userMessage;
+
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.ChatMemory;
-
+import java.util.List;
 import org.assertj.core.api.WithAssertions;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
-
-import static dev.langchain4j.data.message.AiMessage.aiMessage;
-import static dev.langchain4j.data.message.SystemMessage.systemMessage;
-import static dev.langchain4j.data.message.UserMessage.userMessage;
 
 class MessageWindowChatMemoryTest implements WithAssertions {
     @Test
     void test_id() {
         {
-            ChatMemory chatMemory = MessageWindowChatMemory.builder()
-                    .maxMessages(1)
-                    .build();
+            ChatMemory chatMemory =
+                    MessageWindowChatMemory.builder().maxMessages(1).build();
             assertThat(chatMemory.id()).isEqualTo("default");
         }
         {
-            ChatMemory chatMemory = MessageWindowChatMemory.builder()
-                    .id("abc")
-                    .maxMessages(1)
-                    .build();
+            ChatMemory chatMemory =
+                    MessageWindowChatMemory.builder().id("abc").maxMessages(1).build();
             assertThat(chatMemory.id()).isEqualTo("abc");
         }
     }
 
     @Test
     void test_store_and_clear() {
-        ChatMemory chatMemory = MessageWindowChatMemory.builder()
-                .maxMessages(2)
-                .build();
+        ChatMemory chatMemory = MessageWindowChatMemory.builder().maxMessages(2).build();
 
         chatMemory.add(userMessage("hello"));
         chatMemory.add(userMessage("world"));
 
-        assertThat(chatMemory.messages())
-                .containsExactly(
-                        userMessage("hello"),
-                        userMessage("world")
-                );
+        assertThat(chatMemory.messages()).containsExactly(userMessage("hello"), userMessage("world"));
 
         chatMemory.add(userMessage("banana"));
 
-        assertThat(chatMemory.messages())
-                .containsExactly(
-                        userMessage("world"),
-                        userMessage("banana")
-                );
+        assertThat(chatMemory.messages()).containsExactly(userMessage("world"), userMessage("banana"));
 
         chatMemory.clear();
         // idempotent
@@ -71,25 +56,17 @@ class MessageWindowChatMemoryTest implements WithAssertions {
 
         UserMessage firstUserMessage = userMessage("hello");
         chatMemory.add(firstUserMessage);
-        assertThat(chatMemory.messages())
-                .hasSize(1)
-                .containsExactly(firstUserMessage);
+        assertThat(chatMemory.messages()).hasSize(1).containsExactly(firstUserMessage);
 
         AiMessage firstAiMessage = aiMessage("hi");
         chatMemory.add(firstAiMessage);
-        assertThat(chatMemory.messages())
-                .hasSize(2)
-                .containsExactly(firstUserMessage, firstAiMessage);
+        assertThat(chatMemory.messages()).hasSize(2).containsExactly(firstUserMessage, firstAiMessage);
 
         UserMessage secondUserMessage = userMessage("sup");
         chatMemory.add(secondUserMessage);
         assertThat(chatMemory.messages())
                 .hasSize(3)
-                .containsExactly(
-                        firstUserMessage,
-                        firstAiMessage,
-                        secondUserMessage
-                );
+                .containsExactly(firstUserMessage, firstAiMessage, secondUserMessage);
 
         AiMessage secondAiMessage = aiMessage("not much");
         chatMemory.add(secondAiMessage);
@@ -97,10 +74,7 @@ class MessageWindowChatMemoryTest implements WithAssertions {
                 .hasSize(3)
                 .containsExactly(
                         // firstUserMessage was evicted
-                        firstAiMessage,
-                        secondUserMessage,
-                        secondAiMessage
-                );
+                        firstAiMessage, secondUserMessage, secondAiMessage);
     }
 
     @Test
@@ -117,30 +91,27 @@ class MessageWindowChatMemoryTest implements WithAssertions {
         AiMessage firstAiMessage = aiMessage("Hi, how can I help you?");
         chatMemory.add(firstAiMessage);
 
-        assertThat(chatMemory.messages()).containsExactly(
-                systemMessage,
-                firstUserMessage,
-                firstAiMessage
-        );
+        assertThat(chatMemory.messages()).containsExactly(systemMessage, firstUserMessage, firstAiMessage);
 
         UserMessage secondUserMessage = userMessage("Tell me a joke");
         chatMemory.add(secondUserMessage);
 
-        assertThat(chatMemory.messages()).containsExactly(
-                systemMessage,
-                // firstUserMessage was evicted
-                firstAiMessage,
-                secondUserMessage
-        );
+        assertThat(chatMemory.messages())
+                .containsExactly(
+                        systemMessage,
+                        // firstUserMessage was evicted
+                        firstAiMessage,
+                        secondUserMessage);
 
-        AiMessage secondAiMessage = aiMessage("Why did the Java developer wear glasses? Because they didn't see sharp!");
+        AiMessage secondAiMessage =
+                aiMessage("Why did the Java developer wear glasses? Because they didn't see sharp!");
         chatMemory.add(secondAiMessage);
-        assertThat(chatMemory.messages()).containsExactly(
-                systemMessage,
-                // firstAiMessage was evicted
-                secondUserMessage,
-                secondAiMessage
-        );
+        assertThat(chatMemory.messages())
+                .containsExactly(
+                        systemMessage,
+                        // firstAiMessage was evicted
+                        secondUserMessage,
+                        secondAiMessage);
     }
 
     @Test
@@ -157,20 +128,14 @@ class MessageWindowChatMemoryTest implements WithAssertions {
         AiMessage firstAiMessage = aiMessage("Hi, how can I help you?");
         chatMemory.add(firstAiMessage);
 
-        assertThat(chatMemory.messages()).containsExactly(
-                firstSystemMessage,
-                firstUserMessage,
-                firstAiMessage
-        );
+        assertThat(chatMemory.messages()).containsExactly(firstSystemMessage, firstUserMessage, firstAiMessage);
 
         SystemMessage secondSystemMessage = systemMessage("You are an unhelpful assistant");
         chatMemory.add(secondSystemMessage);
-        assertThat(chatMemory.messages()).containsExactly(
-                // firstSystemMessage was evicted
-                firstUserMessage,
-                firstAiMessage,
-                secondSystemMessage
-        );
+        assertThat(chatMemory.messages())
+                .containsExactly(
+                        // firstSystemMessage was evicted
+                        firstUserMessage, firstAiMessage, secondSystemMessage);
     }
 
     @Test
@@ -187,19 +152,11 @@ class MessageWindowChatMemoryTest implements WithAssertions {
         AiMessage aiMessage = aiMessage("Hi, how can I help you?");
         chatMemory.add(aiMessage);
 
-        assertThat(chatMemory.messages()).containsExactly(
-                systemMessage,
-                userMessage,
-                aiMessage
-        );
+        assertThat(chatMemory.messages()).containsExactly(systemMessage, userMessage, aiMessage);
 
         chatMemory.add(systemMessage);
 
-        assertThat(chatMemory.messages()).containsExactly(
-                systemMessage,
-                userMessage,
-                aiMessage
-        );
+        assertThat(chatMemory.messages()).containsExactly(systemMessage, userMessage, aiMessage);
     }
 
     @Test
@@ -208,14 +165,12 @@ class MessageWindowChatMemoryTest implements WithAssertions {
         // given
         ChatMemory chatMemory = MessageWindowChatMemory.withMaxMessages(2);
 
-
         // when
         UserMessage userMessage = UserMessage.from("How much is 2+2?");
         chatMemory.add(userMessage);
 
         // then
         assertThat(chatMemory.messages()).containsExactly(userMessage);
-
 
         // when
         ToolExecutionRequest toolExecutionRequest = ToolExecutionRequest.builder()
@@ -229,7 +184,6 @@ class MessageWindowChatMemoryTest implements WithAssertions {
         // then
         assertThat(chatMemory.messages()).containsExactly(userMessage, aiMessage);
 
-
         // when
         ToolExecutionResultMessage toolExecutionResultMessage =
                 ToolExecutionResultMessage.from(toolExecutionRequest, "4");
@@ -237,7 +191,6 @@ class MessageWindowChatMemoryTest implements WithAssertions {
 
         // then
         assertThat(chatMemory.messages()).containsExactly(aiMessage, toolExecutionResultMessage);
-
 
         // when new message is added and aiMessage (containing ToolExecutionRequest) has to be evicted
         AiMessage aiMessage2 = AiMessage.from("2 + 2 = 4");
@@ -248,11 +201,11 @@ class MessageWindowChatMemoryTest implements WithAssertions {
     }
 
     @Test
-    void should_evict_orphan_ToolExecutionResultMessage_when_evicting_AiMessage_with_ToolExecutionRequest_when_SystemMessage_is_present() {
+    void
+            should_evict_orphan_ToolExecutionResultMessage_when_evicting_AiMessage_with_ToolExecutionRequest_when_SystemMessage_is_present() {
 
         // given
         ChatMemory chatMemory = MessageWindowChatMemory.withMaxMessages(3);
-
 
         // when
         SystemMessage systemMessage = SystemMessage.from("Use calculator for math questions");
@@ -261,14 +214,12 @@ class MessageWindowChatMemoryTest implements WithAssertions {
         // then
         assertThat(chatMemory.messages()).containsExactly(systemMessage);
 
-
         // when
         UserMessage userMessage = UserMessage.from("How much is 2+2?");
         chatMemory.add(userMessage);
 
         // then
         assertThat(chatMemory.messages()).containsExactly(systemMessage, userMessage);
-
 
         // when
         ToolExecutionRequest toolExecutionRequest = ToolExecutionRequest.builder()
@@ -282,7 +233,6 @@ class MessageWindowChatMemoryTest implements WithAssertions {
         // then
         assertThat(chatMemory.messages()).containsExactly(systemMessage, userMessage, aiMessage);
 
-
         // when
         ToolExecutionResultMessage toolExecutionResultMessage =
                 ToolExecutionResultMessage.from(toolExecutionRequest, "4");
@@ -290,7 +240,6 @@ class MessageWindowChatMemoryTest implements WithAssertions {
 
         // then
         assertThat(chatMemory.messages()).containsExactly(systemMessage, aiMessage, toolExecutionResultMessage);
-
 
         // when aiMessage2 is added and aiMessage has to be evicted
         AiMessage aiMessage2 = AiMessage.from("2 + 2 = 4");
@@ -301,11 +250,11 @@ class MessageWindowChatMemoryTest implements WithAssertions {
     }
 
     @Test
-    void should_evict_orphan_ToolExecutionResultMessage_when_evicting_AiMessage_with_ToolExecutionRequest_when_SystemMessage_is_present_2() {
+    void
+            should_evict_orphan_ToolExecutionResultMessage_when_evicting_AiMessage_with_ToolExecutionRequest_when_SystemMessage_is_present_2() {
 
         // given chat memory with only 2 messages
         ChatMemory chatMemory = MessageWindowChatMemory.withMaxMessages(2);
-
 
         // when
         SystemMessage systemMessage = SystemMessage.from("Use calculator for math questions");
@@ -314,14 +263,12 @@ class MessageWindowChatMemoryTest implements WithAssertions {
         // then
         assertThat(chatMemory.messages()).containsExactly(systemMessage);
 
-
         // when
         UserMessage userMessage = UserMessage.from("How much is 2+2?");
         chatMemory.add(userMessage);
 
         // then
         assertThat(chatMemory.messages()).containsExactly(systemMessage, userMessage);
-
 
         // when
         ToolExecutionRequest toolExecutionRequest = ToolExecutionRequest.builder()
@@ -334,7 +281,6 @@ class MessageWindowChatMemoryTest implements WithAssertions {
 
         // then
         assertThat(chatMemory.messages()).containsExactly(systemMessage, aiMessage);
-
 
         // when toolExecutionResultMessage is added and aiMessage has to be evicted
         ToolExecutionResultMessage toolExecutionResultMessage =
@@ -351,14 +297,12 @@ class MessageWindowChatMemoryTest implements WithAssertions {
         // given
         ChatMemory chatMemory = MessageWindowChatMemory.withMaxMessages(3);
 
-
         // when
         UserMessage userMessage = UserMessage.from("How much is 2+2 and 3+3?");
         chatMemory.add(userMessage);
 
         // then
         assertThat(chatMemory.messages()).containsExactly(userMessage);
-
 
         // when
         ToolExecutionRequest toolExecutionRequest1 = ToolExecutionRequest.builder()
@@ -376,7 +320,6 @@ class MessageWindowChatMemoryTest implements WithAssertions {
 
         // then
         assertThat(chatMemory.messages()).containsExactly(userMessage, aiMessage);
-
 
         // when
         ToolExecutionResultMessage toolExecutionResultMessage1 =
@@ -395,7 +338,6 @@ class MessageWindowChatMemoryTest implements WithAssertions {
         assertThat(chatMemory.messages())
                 .containsExactly(aiMessage, toolExecutionResultMessage1, toolExecutionResultMessage2);
 
-
         // when aiMessage2 is added and aiMessage has to be evicted
         AiMessage aiMessage2 = AiMessage.from("2 + 2 = 4, 3 + 3 = 6");
         chatMemory.add(aiMessage2);
@@ -405,11 +347,11 @@ class MessageWindowChatMemoryTest implements WithAssertions {
     }
 
     @Test
-    void should_evict_multiple_orphan_ToolExecutionResultMessages_when_evicting_AiMessage_with_ToolExecutionRequests_when_SystemMessage_is_present() {
+    void
+            should_evict_multiple_orphan_ToolExecutionResultMessages_when_evicting_AiMessage_with_ToolExecutionRequests_when_SystemMessage_is_present() {
 
         // given
         ChatMemory chatMemory = MessageWindowChatMemory.withMaxMessages(4);
-
 
         // when
         SystemMessage systemMessage = SystemMessage.from("Use calculator for math questions");
@@ -418,14 +360,12 @@ class MessageWindowChatMemoryTest implements WithAssertions {
         // then
         assertThat(chatMemory.messages()).containsExactly(systemMessage);
 
-
         // when
         UserMessage userMessage = UserMessage.from("How much is 2+2 and 3+3?");
         chatMemory.add(userMessage);
 
         // then
         assertThat(chatMemory.messages()).containsExactly(systemMessage, userMessage);
-
 
         // when
         ToolExecutionRequest toolExecutionRequest1 = ToolExecutionRequest.builder()
@@ -444,7 +384,6 @@ class MessageWindowChatMemoryTest implements WithAssertions {
         // then
         assertThat(chatMemory.messages()).containsExactly(systemMessage, userMessage, aiMessage);
 
-
         // when
         ToolExecutionResultMessage toolExecutionResultMessage1 =
                 ToolExecutionResultMessage.from(toolExecutionRequest1, "4");
@@ -453,7 +392,6 @@ class MessageWindowChatMemoryTest implements WithAssertions {
         // then
         assertThat(chatMemory.messages())
                 .containsExactly(systemMessage, userMessage, aiMessage, toolExecutionResultMessage1);
-
 
         // when
         ToolExecutionResultMessage toolExecutionResultMessage2 =
@@ -464,7 +402,6 @@ class MessageWindowChatMemoryTest implements WithAssertions {
         assertThat(chatMemory.messages())
                 .containsExactly(systemMessage, aiMessage, toolExecutionResultMessage1, toolExecutionResultMessage2);
 
-
         // when aiMessage2 is added and aiMessage has to be evicted
         AiMessage aiMessage2 = AiMessage.from("2 + 2 = 4, 3 + 3 = 6");
         chatMemory.add(aiMessage2);
@@ -474,11 +411,11 @@ class MessageWindowChatMemoryTest implements WithAssertions {
     }
 
     @Test
-    void should_evict_multiple_orphan_ToolExecutionResultMessages_when_evicting_AiMessage_with_ToolExecutionRequests_addAll() {
+    void
+            should_evict_multiple_orphan_ToolExecutionResultMessages_when_evicting_AiMessage_with_ToolExecutionRequests_addAll() {
 
         // given
         ChatMemory chatMemory = MessageWindowChatMemory.withMaxMessages(3);
-
 
         // when
         UserMessage userMessage = UserMessage.from("How much is 2+2 and 3+3?");
@@ -486,7 +423,6 @@ class MessageWindowChatMemoryTest implements WithAssertions {
 
         // then
         assertThat(chatMemory.messages()).containsExactly(userMessage);
-
 
         // when
         ToolExecutionRequest toolExecutionRequest1 = ToolExecutionRequest.builder()
@@ -505,7 +441,6 @@ class MessageWindowChatMemoryTest implements WithAssertions {
         // then
         assertThat(chatMemory.messages()).containsExactly(userMessage, aiMessage);
 
-
         // when
         ToolExecutionResultMessage toolExecutionResultMessage1 =
                 ToolExecutionResultMessage.from(toolExecutionRequest1, "4");
@@ -517,7 +452,6 @@ class MessageWindowChatMemoryTest implements WithAssertions {
         assertThat(chatMemory.messages())
                 .containsExactly(aiMessage, toolExecutionResultMessage1, toolExecutionResultMessage2);
 
-
         // when aiMessage2 is added and aiMessage has to be evicted
         AiMessage aiMessage2 = AiMessage.from("2 + 2 = 4, 3 + 3 = 6");
         chatMemory.add(aiMessage2);
@@ -527,7 +461,8 @@ class MessageWindowChatMemoryTest implements WithAssertions {
     }
 
     @Test
-    void should_evict_multiple_orphan_ToolExecutionResultMessages_when_evicting_AiMessage_with_ToolExecutionRequests_when_SystemMessage_is_present_addAll() {
+    void
+            should_evict_multiple_orphan_ToolExecutionResultMessages_when_evicting_AiMessage_with_ToolExecutionRequests_when_SystemMessage_is_present_addAll() {
 
         // given
         ChatMemory chatMemory = MessageWindowChatMemory.withMaxMessages(4);
@@ -557,7 +492,6 @@ class MessageWindowChatMemoryTest implements WithAssertions {
         // then
         assertThat(chatMemory.messages()).containsExactly(systemMessage, userMessage, aiMessage);
 
-
         // when
         ToolExecutionResultMessage toolExecutionResultMessage1 =
                 ToolExecutionResultMessage.from(toolExecutionRequest1, "4");
@@ -569,7 +503,6 @@ class MessageWindowChatMemoryTest implements WithAssertions {
         assertThat(chatMemory.messages())
                 .containsExactly(systemMessage, aiMessage, toolExecutionResultMessage1, toolExecutionResultMessage2);
 
-
         // when aiMessage2 is added and aiMessage has to be evicted
         AiMessage aiMessage2 = AiMessage.from("2 + 2 = 4, 3 + 3 = 6");
         chatMemory.add(aiMessage2);
@@ -577,5 +510,4 @@ class MessageWindowChatMemoryTest implements WithAssertions {
         // then orphan toolExecutionResultMessage1 and toolExecutionResultMessage2 are evicted together with aiMessage
         assertThat(chatMemory.messages()).containsExactly(systemMessage, aiMessage2);
     }
-
 }
